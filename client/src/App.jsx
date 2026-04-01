@@ -6,48 +6,93 @@ function App() {
   const [name, setName] = useState("");
   const [amount, setAmount] = useState("");
   const [desc, setDesc] = useState("");
+  const [milestone, setMilestone] = useState("");
+
+  const calculateTrust = (project) => {
+    let score = 40;
+    if (project.description) score += 20;
+    if (project.milestones?.length > 0) score += 20;
+
+    const released = project.milestones.filter(
+      (m) => m.status === "Released ✅"
+    ).length;
+
+    if (released > 0) score += 20;
+
+    return score;
+  };
 
   const addProject = () => {
-    if (!name || !amount || !desc) return;
+    if (!name || !amount || !desc || !milestone) return;
 
     const newProject = {
       id: Date.now(),
       name,
-      amount,
       description: desc,
-      status: "In Escrow 🔒"
+      milestones: [
+        {
+          title: milestone,
+          amount,
+          status: "Locked 🔒"
+        }
+      ]
     };
 
     setProjects([newProject, ...projects]);
     setName("");
     setAmount("");
     setDesc("");
+    setMilestone("");
   };
 
-  const releasePayment = (id) => {
-    const updated = projects.map((p) =>
-      p.id === id ? { ...p, status: "Paid ✅" } : p
-    );
+  const releaseMilestone = (projectId, index) => {
+    const updated = projects.map((p) => {
+      if (p.id === projectId) {
+        const newMilestones = [...p.milestones];
+        newMilestones[index].status = "Released ✅";
+        return { ...p, milestones: newMilestones };
+      }
+      return p;
+    });
+
     setProjects(updated);
   };
 
   return (
     <div className="app">
-      {/* Navbar */}
-      <div className="navbar">
-        <h1>💳 TrustPay</h1>
-        <span>Secure Escrow Platform</span>
-      </div>
-
       <div className="container">
-        {/* Tagline */}
-        <p className="tagline">
-          Secure • Transparent • Hassle-Free Payments
-        </p>
 
-        {/* Form */}
+        {/* HERO */}
+        <div className="hero">
+          <h1>TrustPay</h1>
+          <p>
+            Secure payments. Transparent workflows. Zero payment disputes.
+          </p>
+
+          <div className="hero-stats">
+            <div>
+              <h2>₹ 0</h2>
+              <span>Total Secured</span>
+            </div>
+            <div>
+              <h2>{projects.length}</h2>
+              <span>Active Escrows</span>
+            </div>
+            <div>
+              <h2>
+                {projects.filter(p =>
+                  p.milestones.some(m => m.status === "Released ✅")
+                ).length}
+              </h2>
+              <span>Completed</span>
+            </div>
+          </div>
+        </div>
+
+        {/* FORM */}
         <div className="form-card">
           <h2>Create Escrow</h2>
+
           <div className="form">
             <input
               placeholder="Project Name"
@@ -67,51 +112,73 @@ function App() {
               onChange={(e) => setDesc(e.target.value)}
             />
 
-            <button onClick={addProject}>Create</button>
+            <input
+              placeholder="Milestone (Design / Dev)"
+              value={milestone}
+              onChange={(e) => setMilestone(e.target.value)}
+            />
+
+            <button onClick={addProject}>
+              Secure Payment 🔒
+            </button>
           </div>
         </div>
 
-        {/* Stats */}
-        <div className="stats">
-          <div className="stat-box">
-            <p>Total Projects</p>
-            <h2>{projects.length}</h2>
-          </div>
-
-          <div className="stat-box">
-            <p>Payments Released</p>
-            <h2>
-              {projects.filter((p) => p.status === "Paid ✅").length}
-            </h2>
-          </div>
-        </div>
-
-        {/* Projects */}
+        {/* PROJECTS */}
         <div className="projects">
           {projects.map((p) => (
             <div className="project-card" key={p.id}>
-              <div className="project-top">
-                <h3>{p.name}</h3>
-                <span
-                  className={
-                    p.status === "Paid ✅" ? "green" : "yellow"
-                  }
-                >
-                  {p.status}
+              <h3>{p.name}</h3>
+
+              <p className="desc">{p.description}</p>
+
+              <p className="trust-score">
+                Trust Score: {calculateTrust(p)}%
+              </p>
+
+              {/* 🔥 TIMELINE */}
+              <div className="timeline">
+                <span className="active">Funded</span>
+                <span>→</span>
+                <span className="active">In Progress</span>
+                <span>→</span>
+                <span className={
+                  p.milestones.some(m => m.status === "Released ✅")
+                    ? "active"
+                    : ""
+                }>
+                  Released
                 </span>
               </div>
 
-              <p className="amount">₹ {p.amount}</p>
-              <p className="desc">{p.description}</p>
+              {p.milestones.map((m, i) => (
+                <div key={i} className="milestone">
+                  <span>{m.title} - ₹{m.amount}</span>
 
-              {p.status !== "Paid ✅" && (
-                <button onClick={() => releasePayment(p.id)}>
-                  Release Funds 💸
-                </button>
-              )}
+                  <span className={
+                    m.status === "Released ✅" ? "green" : "yellow"
+                  }>
+                    {m.status}
+                  </span>
+
+                  {m.status !== "Released ✅" && (
+                    <button onClick={() => releaseMilestone(p.id, i)}>
+                      Release 💸
+                    </button>
+                  )}
+                </div>
+              ))}
             </div>
           ))}
         </div>
+
+        {/* EMPTY */}
+        {projects.length === 0 && (
+          <p style={{ textAlign: "center", marginTop: "40px", color: "#64748b" }}>
+            No escrow projects yet. Create one to get started 🚀
+          </p>
+        )}
+
       </div>
     </div>
   );
